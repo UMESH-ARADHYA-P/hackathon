@@ -63,7 +63,9 @@ labels = to_categorical(labels)
 
 data = np.array(data, dtype="float32")
 labels = np.array(labels)
-
+print(data[2000])
+print(len(data[2000]))
+print(labels[2000])
 
 (trainX, testX, trainY, testY) = train_test_split(data, labels,	test_size=0.30, stratify=labels, random_state=42)
 
@@ -71,3 +73,57 @@ aug = ImageDataGenerator(otation_range=20,width_shift_range=0.2,shear_range=0.15
 
 baseModel = MobileNetV2( include_top=False,weights="imagenet",input_tensor=Input(shape=(224, 224, 3)))
 
+headModel = baseModel.output
+headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
+headModel = Flatten(name="flatten")(headModel)
+headModel = Dense(128, activation="relu")(headModel)
+headModel = Dropout(0.5)(headModel)
+headModel = Dense(2, activation="softmax")(headModel)
+model = Model(inputs=baseModel.input, outputs=headModel)
+
+
+for layer in baseModel.layers:
+	layer.trainable = False
+
+model.compile(loss="binary_crossentropy", optimizer= "adam",
+	metrics=["accuracy"])
+
+print("The model has been compiled  !")
+BSS  = BS
+H = model.fit(
+	aug.flow(trainX, trainY, batch_size=BSS),
+	steps_per_epoch=len(trainX) // BSS,
+	validation_data=(testX, testY),
+	validation_steps=len(testX) // BSS,
+	epochs=EPOCHS)
+
+print("The training has been completed  !")
+predIdxs = model.predict(testX, batch_size=BSS)
+
+
+predIdxs = np.argmax(predIdxs, axis=1)
+
+print(classification_report(testY.argmax(axis=1), predIdxs,
+	target_names=lb.classes_))
+
+model.save("mask_detector.model", save_format="h5")
+
+print("The model saved successfully  ...!")
+
+N = EPOCHS
+print(N)
+plt.title("Training and testion Loss ")
+plt.xlabel("Epoch #")
+plt.ylabel("Loss/Accuracy")
+
+
+plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
+plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
+plt.savefig("plot_loss.png")
+
+N = EPOCHS
+plt.title("Training and testion accuracy ")
+
+plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
+plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+plt.savefig("plot_validation.png")
