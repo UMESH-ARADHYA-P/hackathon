@@ -70,3 +70,4 @@ labels = np.array(labels)
 aug = ImageDataGenerator(otation_range=20,width_shift_range=0.2,shear_range=0.15,zoom_range=0.15,height_shift_range=0.2,horizontal_flip=True,fill_mode="nearest")
 
 baseModel = MobileNetV2( include_top=False,weights="imagenet",input_tensor=Input(shape=(224, 224, 3)))
+
